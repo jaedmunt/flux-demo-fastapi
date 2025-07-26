@@ -1,0 +1,10 @@
+# Kafka
+KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+KAFKA_TOPIC=feed_urls
+
+# Weaviate
+WEAVIATE_URL=http://weaviate:8080
+JINAAI_APIKEY=YOUR_JINA_AI_KEY
+
+# FastAPI
+BEARER_TOKEN=supersecret
