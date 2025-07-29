@@ -39,19 +39,30 @@ def search(
     limit: int = 10,
     alpha: float = 0.5,
     rerank_k: int = 50,
+    recency: bool = Query(True, description="Sort by recency (newest first) before reranking"),
 ):
     coll = client.collections.get("FeedItem")
     
     # Generate query vector using the same model as consumer
     if model:
         query_vector = model.encode(q).tolist()
-        res = coll.query.hybrid(
-            query=q,
-            vector=query_vector,
-            limit=limit,
-            alpha=alpha,                       # BM25/vector mixing
-            rerank=Rerank(prop="title", query=q),
-        )
+        
+        # Build query with optional recency sorting
+        if recency:
+            # For recency, use BM25 (no sorting in Weaviate v4)
+            res = coll.query.bm25(
+                query=q,
+                limit=limit,
+            )
+        else:
+            # For pure relevance, use hybrid search
+            res = coll.query.hybrid(
+                query=q,
+                vector=query_vector,
+                limit=limit,
+                alpha=alpha,                       # BM25/vector mixing
+                rerank=Rerank(prop="title", query=q),
+            )
     else:
         # Fallback to BM25 only if model not available
         res = coll.query.bm25(
@@ -59,7 +70,15 @@ def search(
             limit=limit,
         )
     
-    return [o.properties for o in res.objects]
+    # Get results and sort by published date if recency is enabled
+    results = [o.properties for o in res.objects]
+    
+    if recency:
+        # Sort by published date (newest first)
+        results.sort(key=lambda x: x.get("published", ""), reverse=True)
+        return results[:limit]
+    else:
+        return results
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
