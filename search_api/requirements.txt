@@ -2,3 +2,4 @@ fastapi
 uvicorn
 weaviate-client
 python-dotenv
+sentence-transformers

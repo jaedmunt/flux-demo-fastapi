@@ -7,6 +7,15 @@ import uvicorn
 bearer = HTTPBearer()
 TOKEN  = os.getenv("BEARER_TOKEN")
 
+# Load sentence transformer for query vectorization
+try:
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("Loaded sentence transformer model for query vectorization")
+except Exception as e:
+    print(f"Error loading sentence transformer: {e}")
+    model = None
+
 def check(creds: HTTPAuthorizationCredentials = Security(bearer)):
     if creds.credentials != TOKEN:
         raise HTTPException(401, "Invalid token")
@@ -32,12 +41,24 @@ def search(
     rerank_k: int = 50,
 ):
     coll = client.collections.get("FeedItem")
-    res = coll.query.hybrid(
-        query=q,
-        limit=limit,
-        alpha=alpha,                       # BM25/vector mixing
-        rerank=Rerank(prop="title", query=q, top_k=rerank_k),
-    )
+    
+    # Generate query vector using the same model as consumer
+    if model:
+        query_vector = model.encode(q).tolist()
+        res = coll.query.hybrid(
+            query=q,
+            vector=query_vector,
+            limit=limit,
+            alpha=alpha,                       # BM25/vector mixing
+            rerank=Rerank(prop="title", query=q),
+        )
+    else:
+        # Fallback to BM25 only if model not available
+        res = coll.query.bm25(
+            query=q,
+            limit=limit,
+        )
+    
     return [o.properties for o in res.objects]
 
 if __name__ == "__main__":
