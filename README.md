@@ -1,3 +1,14 @@
+# Flux Demo FastAPI
+
+## Quick Guidance/ Gotchas
+
+- feeds.txt goes in root. Store longer or alternative versions elsewhere and move to root when ready
+
+## TODOS:
+
+- [ ] Specific versioning on the requirements files
+
+
 fluxdemo-fastapi/
 ├─ docker-compose.yml
 ├─ feeds.txt

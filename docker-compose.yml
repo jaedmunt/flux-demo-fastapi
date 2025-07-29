@@ -1,63 +1,104 @@
- 
 version: "3.9"
 
 services:
+  # ────────────────────────────────────────────────────────────────
+  # Core infra: ZooKeeper + Kafka
+  # ────────────────────────────────────────────────────────────────
   zookeeper:
     image: bitnami/zookeeper:3.9
-    ports: [ "2181:2181" ]
+    ports: ["2181:2181"]
 
   kafka:
     image: bitnami/kafka:3.7
-    depends_on: [ zookeeper ]
+    depends_on:
+      - zookeeper
     environment:
       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       ALLOW_PLAINTEXT_LISTENER: "yes"
-    ports: [ "9092:9092" ]
+    ports: ["9092:9092"]
 
+  # ────────────────────────────────────────────────────────────────
+  # Vector store
+  # ────────────────────────────────────────────────────────────────
   weaviate:
     image: semitechnologies/weaviate:1.27.6
-    ports: [ "8080:8080" ]
+    ports: ["8080:8080"]
     environment:
-      ENABLE_MODULES: text2vec-openai,reranker-jinaai        # ➈
+      ENABLE_MODULES: text2vec-openai,reranker-jinaai
       JINAAI_APIKEY: ${JINAAI_APIKEY}
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
       QUERY_DEFAULTS_LIMIT: 25
       PERSISTENCE_DATA_PATH: /var/lib/weaviate
       CLUSTER_HOSTNAME: node1
-    volumes: [ "weaviate_data:/var/lib/weaviate" ]
-
-  producer:
-    build: ./producer
-    depends_on: [ kafka ]
-    env_file: .env
-
-  consumer:
-    build: ./consumer
-    depends_on: [ kafka, weaviate ]
-    env_file: .env
     volumes:
-      - ./models:/models                   # put your Word2Vec bin here
+      - weaviate_data:/var/lib/weaviate
 
-  airflow:
-  build: ./airflow          # ⬅︎ replaces `image: apache/airflow:…`
-  env_file: .env
-  volumes:
-    - ./airflow/dags:/opt/airflow/dags
-    - ./feeds.txt:/opt/airflow/feeds.txt:ro   
-  ports: ["8088:8080"]
-  command: >
-    bash -c "airflow db upgrade &&
-             airflow users create --username admin --firstname a --lastname d \
-                                   --role Admin --password admin --email admin@example.com &&
-             airflow webserver & airflow scheduler"
-  depends_on: [kafka]
-
-  api:
-    build: ./search_api
-    depends_on: [ weaviate ]
+  # ────────────────────────────────────────────────────────────────
+  # Feed producer → Kafka
+  # ────────────────────────────────────────────────────────────────
+  producer:
+    build:
+      context: ./producer          # contains Dockerfile, requirements.txt, producer.py
+      dockerfile: Dockerfile
     env_file: .env
-    ports: [ "8000:8000" ]                 # FastAPI → http://localhost:8000
+    depends_on:
+      - kafka
+    volumes:
+      - ./feeds.txt:/app/feeds.txt:ro   # optional convenience mount
 
+  # ────────────────────────────────────────────────────────────────
+  # Consumer: polls feeds, vectors → Weaviate
+  # ────────────────────────────────────────────────────────────────
+  consumer:
+    build:
+      context: ./consumer          # contains Dockerfile, requirements.txt, consumer.py
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      - kafka
+      - weaviate
+    volumes:
+      - ./models:/models           # Word2Vec binaries
+
+  # ────────────────────────────────────────────────────────────────
+  # Apache Airflow (scheduler + webserver in one container)
+  # ────────────────────────────────────────────────────────────────
+  airflow:
+    build:
+      context: ./airflow           # contains the Airflow Dockerfile
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      - kafka
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./feeds.txt:/opt/airflow/feeds.txt:ro
+    ports: ["8088:8080"]           # host:container
+    command: >
+      bash -c "
+        airflow db upgrade &&
+        airflow users create --username admin --password admin --firstname A --lastname D \
+                             --role Admin --email admin@example.com &&
+        airflow webserver &
+        airflow scheduler
+      "
+
+  # ────────────────────────────────────────────────────────────────
+  # FastAPI wrapper around Weaviate
+  # ────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./search_api        # contains Dockerfile, requirements.txt, main.py
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      - weaviate
+    ports:
+      - "8000:8000"                # FastAPI → http://localhost:8000
+
+# ──────────────────────────────────────────────────────────────────
+# Named volumes
+# ──────────────────────────────────────────────────────────────────
 volumes:
   weaviate_data:

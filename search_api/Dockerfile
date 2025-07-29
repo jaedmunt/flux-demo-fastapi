@@ -1,10 +1,8 @@
-# Kafka
-KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-KAFKA_TOPIC=feed_urls
+# Dockerfile
+FROM python:3.12-slim
 
-# Weaviate
-WEAVIATE_URL=http://weaviate:8080
-JINAAI_APIKEY=YOUR_JINA_AI_KEY
-
-# FastAPI
-BEARER_TOKEN=supersecret
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "main.py"]       # or producer.py / consumer.py …
