@@ -76,7 +76,7 @@ consumer = KafkaConsumer(
 def sha256(obj) -> str:
     return hashlib.sha256(json.dumps(obj, default=str).encode()).hexdigest()
 
-def fetch_feed_with_timeout(feed_url: str, timeout: int = 30) -> dict:
+def fetch_feed_with_timeout(feed_url: str, timeout: int = 5) -> dict:
     """Fetch RSS feed with timeout to prevent hanging"""
     try:
         # Use requests to fetch with timeout
@@ -101,7 +101,7 @@ for msg in consumer:
     logging.info("Fetching %s", feed_url)
     
     # Fetch feed with timeout
-    fp = fetch_feed_with_timeout(feed_url, timeout=30)
+    fp = fetch_feed_with_timeout(feed_url, timeout=5)
     
     if fp is None or not fp.entries:
         logging.warning(f"Skipping feed {feed_url} - no valid entries")
@@ -143,4 +143,4 @@ for msg in consumer:
     logging.info(f"Processed {articles_processed} articles from {feed_url}")
     
     # Small delay to prevent overwhelming the system
-    time.sleep(0.1)
+    time.sleep(0.01)

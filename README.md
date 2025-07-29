@@ -6,7 +6,9 @@
 
 ## TODOS:
 
-- [ ] Specific versioning on the requirements files
+- [x] Specific versioning on the requirements files
+- [ ] Speed up conmsumer
+- [ ] Distributed scheduler (Kafka) needs to partition by domains
 
 
 fluxdemo-fastapi/
