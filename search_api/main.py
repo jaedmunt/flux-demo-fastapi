@@ -73,12 +73,22 @@ def search(
     # Get results and sort by published date if recency is enabled
     results = [o.properties for o in res.objects]
     
+    # Deduplicate by URL to prevent syndicated content from appearing multiple times
+    seen_urls = set()
+    deduplicated_results = []
+    
+    for result in results:
+        url = result.get("url", "")
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            deduplicated_results.append(result)
+    
     if recency:
         # Sort by published date (newest first)
-        results.sort(key=lambda x: x.get("published", ""), reverse=True)
-        return results[:limit]
+        deduplicated_results.sort(key=lambda x: x.get("published", ""), reverse=True)
+        return deduplicated_results[:limit]
     else:
-        return results
+        return deduplicated_results[:limit]
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
