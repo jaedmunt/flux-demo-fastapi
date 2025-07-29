@@ -1,0 +1,6 @@
+kafka-python
+weaviate-client
+feedparser
+requests
+beautifulsoup4
+python-dateutil
