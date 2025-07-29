@@ -3,31 +3,53 @@ import os, hashlib, datetime as dt, json, logging
 from kafka import KafkaConsumer
 import feedparser, weaviate
 from dateutil import parser as dparse
-from gensim.models import KeyedVectors
 
 logging.basicConfig(level=logging.INFO)
 
 # ---- embeddings (Req 7) ----
-wv = KeyedVectors.load_word2vec_format("/models/GoogleNews-vectors-negative300.bin.gz", binary=True)
-
-def mean_vector(text: str) -> list[float]:
-    tokens = [t for t in text.lower().split() if t in wv]
-    return wv.get_mean_vector(tokens).tolist() if tokens else [0.0] * wv.vector_size
+try:
+    from sentence_transformers import SentenceTransformer
+    
+    # Load a pre-trained sentence transformer model
+    model = SentenceTransformer('all-MiniLM-L6-v2')  # 384-dimensional embeddings
+    
+    logging.info("Loaded sentence transformer model: all-MiniLM-L6-v2")
+    
+    def mean_vector(text: str) -> list[float]:
+        # Get embeddings for the text
+        embeddings = model.encode(text)
+        return embeddings.tolist()
+            
+except Exception as e:
+    logging.warning(f"Error loading sentence transformer model: {e}, using zero vectors")
+    def mean_vector(text: str) -> list[float]:
+        return [0.0] * 384  # Default 384-dimensional zero vector
 
 # ---- weaviate client ----
-client = weaviate.Client(
-    url=os.getenv("WEAVIATE_URL", "http://weaviate:8080"),
+client = weaviate.WeaviateClient(
+    connection_params=weaviate.connect.ConnectionParams.from_url(
+        os.getenv("WEAVIATE_URL", "http://weaviate:8080"),
+        grpc_port=50051
+    ),
     additional_headers={"X-JinaAI-Api-Key": os.getenv("JINAAI_APIKEY")}
 )
 
-if not client.schema.exists("FeedItem"):
+# Connect to Weaviate
+client.connect()
+
+# Check if collection exists, if not create it
+try:
+    client.collections.get("FeedItem")
+    logging.info("FeedItem collection already exists")
+except:
+    logging.info("Creating FeedItem collection")
     from weaviate.classes.config import Configure
 
-    client.schema.create(
+    client.collections.create(
         "FeedItem",
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.InvertedIndex.bm25(),
-        reranker_config=Configure.Reranker.jinaai(model="jina-reranker-v1-base-en"),   # ➈
+        reranker_config=Configure.Reranker.jinaai(model="jina-reranker-v1-base-en"),
         properties=[
             {"name": "url",           "dataType": ["text"]},
             {"name": "title",         "dataType": ["text"]},
@@ -66,7 +88,7 @@ for msg in consumer:
         # build vector
         vec = mean_vector(f"{entry.title}. {entry.get('summary', '')}")
 
-        client.data_object.create(
+        client.collections.get("FeedItem").data.insert(
             {
                 "url": entry.link,
                 "title": entry.title,
@@ -76,6 +98,5 @@ for msg in consumer:
                 "feed_hash": feed_hash,
                 "item_hash": item_hash,
             },
-            class_name="FeedItem",
             vector=vec,
         )
