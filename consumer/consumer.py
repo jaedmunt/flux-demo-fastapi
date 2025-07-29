@@ -4,6 +4,8 @@ from kafka import KafkaConsumer
 import feedparser, weaviate, requests
 from dateutil import parser as dparse
 import time
+from bs4 import BeautifulSoup
+import html
 
 logging.basicConfig(level=logging.INFO)
 
@@ -96,6 +98,23 @@ def fetch_feed_with_timeout(feed_url: str, timeout: int = 5) -> dict:
         logging.error(f"Unexpected error processing feed {feed_url}: {e}")
         return None
 
+def clean_html_content(text: str) -> str:
+    """Remove HTML tags and decode HTML entities from text"""
+    if not text:
+        return ""
+    
+    # Decode HTML entities first
+    text = html.unescape(text)
+    
+    # Parse with BeautifulSoup and get text content
+    soup = BeautifulSoup(text, 'html.parser')
+    clean_text = soup.get_text(separator=' ', strip=True)
+    
+    # Remove extra whitespace
+    clean_text = ' '.join(clean_text.split())
+    
+    return clean_text
+
 for msg in consumer:
     feed_url = msg.value.decode()
     logging.info("Fetching %s", feed_url)
@@ -115,18 +134,33 @@ for msg in consumer:
     for entry in fp.entries:
         try:
             pub = dparse.parse(entry.get("published", accessed)).isoformat()   # Req 3
+            
+            # Clean HTML content from title and description
+            clean_title = clean_html_content(entry.title)
+            clean_description = clean_html_content(entry.get("summary", ""))
+            
             item_hash = sha256(
-                {"t": entry.title, "d": entry.get("summary"), "p": pub, "u": entry.link}
+                {"t": clean_title, "d": clean_description, "p": pub, "u": entry.link}
             )  # Req 6 - Include URL to prevent duplicates from syndicated content
 
+            # Check if article already exists to prevent storage duplication
+            existing = client.collections.get("FeedItem").query.fetch_objects(
+                where={"path": ["item_hash"], "operator": "Equal", "valueString": item_hash},
+                limit=1
+            )
+            
+            if existing.objects:
+                logging.info(f"Article already exists, skipping: {clean_title}")
+                continue
+
             # build vector
-            vec = mean_vector(f"{entry.title}. {entry.get('summary', '')}")
+            vec = mean_vector(f"{clean_title}. {clean_description}")
 
             client.collections.get("FeedItem").data.insert(
                 {
                     "url": entry.link,
-                    "title": entry.title,
-                    "description": entry.get("summary", ""),
+                    "title": clean_title,
+                    "description": clean_description,
                     "published": pub,
                     "last_accessed": accessed,        # Req 4
                     "feed_hash": feed_hash,
