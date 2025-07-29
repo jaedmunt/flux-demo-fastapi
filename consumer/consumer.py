@@ -116,8 +116,8 @@ for msg in consumer:
         try:
             pub = dparse.parse(entry.get("published", accessed)).isoformat()   # Req 3
             item_hash = sha256(
-                {"t": entry.title, "d": entry.get("summary"), "p": pub}
-            )  # Req 6
+                {"t": entry.title, "d": entry.get("summary"), "p": pub, "u": entry.link}
+            )  # Req 6 - Include URL to prevent duplicates from syndicated content
 
             # build vector
             vec = mean_vector(f"{entry.title}. {entry.get('summary', '')}")
