@@ -2,6 +2,7 @@
 import os, hashlib, datetime as dt, json, logging
 from kafka import KafkaConsumer
 import feedparser, weaviate, requests
+from weaviate.classes import query
 from dateutil import parser as dparse
 import time
 from bs4 import BeautifulSoup
@@ -145,8 +146,8 @@ for msg in consumer:
 
             # Check if article already exists to prevent storage duplication
             existing = client.collections.get("FeedItem").query.fetch_objects(
-                where={"path": ["item_hash"], "operator": "Equal", "valueString": item_hash},
-                limit=1
+                limit=1,
+                filters=query.Filter.by_property("item_hash").equal(item_hash)
             )
             
             if existing.objects:

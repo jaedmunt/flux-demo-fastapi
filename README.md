@@ -32,7 +32,13 @@ curl -X GET "http://localhost:8000/search?q=bitcoin&recency=false" \
 # More results with higher vector weighting
 curl -X GET "http://localhost:8000/search?q=AI&limit=20&alpha=0.8" \
   -H "Authorization: Bearer supersecret"
+
+
+# More results with higher vector weighting
+curl -X GET "http://localhost:8000/search?q=AI&limit=20&alpha=0.8" \
+  -H "Authorization: Bearer supersecret"
 ```
+
 
 ## TODOS:
 

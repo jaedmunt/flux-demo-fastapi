@@ -5,9 +5,9 @@ from datetime import datetime
 
 with DAG(
     dag_id="repoll_feeds",
-    description="Re-queue RSS urls every hour",
+    description="Re-queue RSS urls daily",
     start_date=days_ago(1),
-    schedule_interval="0 * * * *",       # hourly
+    schedule_interval="0 0 * * *",       # daily at midnight
     catchup=False,
 ) as dag:
     ProduceToTopicOperator(
