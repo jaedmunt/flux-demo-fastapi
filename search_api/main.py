@@ -40,6 +40,7 @@ def search(
     alpha: float = 0.5,
     rerank_k: int = 50,
     recency: bool = Query(True, description="Sort by recency (newest first) before reranking"),
+    include_scores: bool = Query(True, description="Include relevance scores in results"),
 ):
     coll = client.collections.get("FeedItem")
     
@@ -47,19 +48,20 @@ def search(
     if model:
         query_vector = model.encode(q).tolist()
         
-        # Build query with optional recency sorting
+        # Build query with reranking for better relevance scores
         if recency:
-            # For recency, use BM25 (no sorting in Weaviate v4)
+            # For recency, use BM25 with reranking to get scores
             res = coll.query.bm25(
                 query=q,
-                limit=limit,
+                limit=rerank_k,  # Get more results for reranking
+                rerank=Rerank(prop="title", query=q),
             )
         else:
-            # For pure relevance, use hybrid search
+            # For pure relevance, use hybrid search with reranking
             res = coll.query.hybrid(
                 query=q,
                 vector=query_vector,
-                limit=limit,
+                limit=rerank_k,  # Get more results for reranking
                 alpha=alpha,                       # BM25/vector mixing
                 rerank=Rerank(prop="title", query=q),
             )
@@ -70,14 +72,29 @@ def search(
             limit=limit,
         )
     
-    # Get results and sort by published date if recency is enabled
-    results = [o.properties for o in res.objects]
+    # Get results with scores
+    results_with_scores = []
+    for i, obj in enumerate(res.objects):
+        result = obj.properties.copy()
+        if include_scores:
+            # Add score and rank information - try different score attributes
+            score = None
+            if hasattr(obj, 'score'):
+                score = obj.score
+            elif hasattr(obj, 'rerank_score'):
+                score = obj.rerank_score
+            elif hasattr(obj, 'bm25_score'):
+                score = obj.bm25_score
+            
+            result["relevance_score"] = score
+            result["rank"] = i + 1
+        results_with_scores.append(result)
     
     # Deduplicate by URL to prevent syndicated content from appearing multiple times
     seen_urls = set()
     deduplicated_results = []
     
-    for result in results:
+    for result in results_with_scores:
         url = result.get("url", "")
         if url and url not in seen_urls:
             seen_urls.add(url)

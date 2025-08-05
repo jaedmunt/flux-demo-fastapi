@@ -18,6 +18,7 @@ curl -X GET "http://localhost:8000/search?q=bitcoin" \
 - `alpha` (default: 0.5): Hybrid search weighting (0=BM25 only, 1=vector only)
 - `rerank_k` (default: 50): Number of results to rerank
 - `recency` (default: true): Sort by published date (newest first)
+- `include_scores` (default: true): Include relevance scores and rank in results
 
 ### Examples
 ```bash
@@ -33,11 +34,34 @@ curl -X GET "http://localhost:8000/search?q=bitcoin&recency=false" \
 curl -X GET "http://localhost:8000/search?q=AI&limit=20&alpha=0.8" \
   -H "Authorization: Bearer supersecret"
 
-
-# More results with higher vector weighting
-curl -X GET "http://localhost:8000/search?q=AI&limit=20&alpha=0.8" \
+# Search with relevance scores
+curl -X GET "http://localhost:8000/search?q=bitcoin&include_scores=true" \
   -H "Authorization: Bearer supersecret"
 ```
+
+### Search Result Ranking
+
+When `include_scores=true` is used, the API returns additional ranking information for each result:
+
+**Response format with scores:**
+```json
+[
+  {
+    "title": "Article Title",
+    "description": "Article description...",
+    "url": "https://example.com",
+    "published": "2025-07-31T...",
+    "relevance_score": 0.85,
+    "rank": 1
+  }
+]
+```
+
+**Ranking fields:**
+- `relevance_score`: Hybrid search score (BM25 + vector similarity)
+- `rank`: Position in search results (1-based)
+
+This allows users to sort results by relevance score and understand the confidence level of each match.
 
 
 ## TODOS:
@@ -45,6 +69,9 @@ curl -X GET "http://localhost:8000/search?q=AI&limit=20&alpha=0.8" \
 - [x] Specific versioning on the requirements files
 - [ ] Speed up conmsumer
 - [ ] Distributed scheduler (Kafka) needs to partition by domains
+- [ ] Check if we include tags, timestamps (pubDate) etc in the hash -> might be causing us to miss dedups
+- [ ] How are we handling %20 etc
+- [ ] 
 
 
 fluxdemo-fastapi/
@@ -81,3 +108,5 @@ feeds.txt → Producer → Kafka topic `feed_urls`
                                                         ↓
                                            Users (hybrid search)
 ```
+
+He%20has%20trouble%20completing%20a%20thought’:%20bizarre%20public%20appearances%20again%20cast%20doubt%20on%20Trumps%20mental%20acuity
