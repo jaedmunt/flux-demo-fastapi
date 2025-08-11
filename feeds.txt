@@ -43238,3 +43238,6 @@ https://zymoresearch.com/blogs/blog.atom
 https://zythophile.co.uk/feed/
 https://zzzwizard.itch.io/copperhead/devlog.rss
 https://en.wikipedia.org/w/index.php?title=Special:NewPages&feed=rss
+https://bills.parliament.uk/rss/privatebills.rss
+https://bills.parliament.uk/rss/publicbills.rss
+https://bills.parliament.uk/rss/allbills.rss
