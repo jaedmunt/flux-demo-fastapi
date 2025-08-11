@@ -43237,3 +43237,4 @@ https://zygfurmaniuk.substack.com/feed
 https://zymoresearch.com/blogs/blog.atom
 https://zythophile.co.uk/feed/
 https://zzzwizard.itch.io/copperhead/devlog.rss
+https://en.wikipedia.org/w/index.php?title=Special:NewPages&feed=rss

@@ -1,0 +1,292 @@
+{
+	"info": {
+		"_postman_id": "flux-demo-search-api",
+		"name": "Flux Demo Search API",
+		"description": "Collection for the Flux Demo FastAPI search endpoints. This API provides hybrid search capabilities combining BM25 and vector similarity with reranking.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Search API",
+			"item": [
+				{
+					"name": "Basic Search",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer supersecret",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=bitcoin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "bitcoin"
+								}
+							]
+						},
+						"description": "Basic search query for 'bitcoin' with default parameters"
+					},
+					"response": []
+				},
+				{
+					"name": "Health Search",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer supersecret",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "health"
+								}
+							]
+						},
+						"description": "Search for health-related content"
+					},
+					"response": []
+				},
+				{
+					"name": "Relevance-Focused Search",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer supersecret",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=bitcoin&recency=false",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "bitcoin"
+								},
+								{
+									"key": "recency",
+									"value": "false"
+								}
+							]
+						},
+						"description": "Search focused on relevance rather than recency (no date sorting)"
+					},
+					"response": []
+				},
+				{
+					"name": "AI Search with Higher Vector Weighting",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer supersecret",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=AI&limit=20&alpha=0.8",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "AI"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "alpha",
+									"value": "0.8"
+								}
+							]
+						},
+						"description": "Search for AI content with more results and higher vector similarity weighting"
+					},
+					"response": []
+				},
+				{
+					"name": "Search with Relevance Scores",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer supersecret",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=bitcoin&include_scores=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "bitcoin"
+								},
+								{
+									"key": "include_scores",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Search with relevance scores and ranking information included"
+					},
+					"response": []
+				},
+				{
+					"name": "Custom Reranking Search",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer supersecret",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=technology&rerank_k=100&alpha=0.3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "technology"
+								},
+								{
+									"key": "rerank_k",
+									"value": "100"
+								},
+								{
+									"key": "alpha",
+									"value": "0.3"
+								}
+							]
+						},
+						"description": "Search with custom reranking parameters and BM25-focused weighting"
+					},
+					"response": []
+				},
+				{
+					"name": "Large Result Set Search",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer supersecret",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=news&limit=50&rerank_k=200",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "news"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "rerank_k",
+									"value": "200"
+								}
+							]
+						},
+						"description": "Search for news with a large result set and extensive reranking"
+					},
+					"response": []
+				}
+			],
+			"description": "Collection of search API endpoints with various parameter combinations"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string",
+			"description": "Base URL for the Flux Demo Search API"
+		},
+		{
+			"key": "bearer_token",
+			"value": "supersecret",
+			"type": "string",
+			"description": "Bearer token for API authentication"
+		}
+	]
+} 
